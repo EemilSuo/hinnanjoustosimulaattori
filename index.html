@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hinnanmuutos ja Kysynnän Jousto - Simulaattori</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input[type=range] {
+            height: 6px;
+            -webkit-appearance: none;
+            background: #e2e8f0;
+            border-radius: 5px;
+            background-image: linear-gradient(#3b82f6, #3b82f6);
+            background-repeat: no-repeat;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 0 2px 0 rgba(0,0,0,0.5);
+            transition: background .3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+
+    <div class="max-w-5xl mx-auto px-4 py-10">
+        <!-- Header -->
+        <header class="mb-10 text-center">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">Hinnanmuutoksen Simulaattori</h1>
+            <p class="text-slate-600">Analysoi hinnan laskun vaikutusta myyntivolyymiin ja kokonaisliikevaihtoon.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Controls Sidebar -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-8">
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Alkuperäinen hinta (€)</label>
+                        <span id="origPriceVal" class="text-blue-600 font-bold">100</span>
+                    </div>
+                    <input type="range" id="origPrice" min="1" max="1000" value="100" class="w-full cursor-pointer">
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Uusi hinta (€)</label>
+                        <span id="newPriceVal" class="text-blue-600 font-bold">90</span>
+                    </div>
+                    <input type="range" id="newPrice" min="1" max="1000" value="90" class="w-full cursor-pointer">
+                    <p id="priceChangePct" class="text-xs mt-1 text-slate-500 italic"></p>
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Alkuperäinen volyymi (kpl)</label>
+                        <span id="origVolVal" class="text-blue-600 font-bold">1000</span>
+                    </div>
+                    <input type="range" id="origVol" min="10" max="10000" step="10" value="1000" class="w-full cursor-pointer">
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">Kysynnän hintajousto</label>
+                        <span id="elasticityVal" class="text-blue-600 font-bold">1.5</span>
+                    </div>
+                    <input type="range" id="elasticity" min="0" max="5" step="0.1" value="1.5" class="w-full cursor-pointer">
+                    <p class="text-[10px] text-slate-400 mt-2 leading-tight">
+                        Esim. 1.5 tarkoittaa, että 10% hinnanlasku kasvattaa volyymia 15%.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Dashboard / Results -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Revenue Card -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wider mb-4">Uusi Liikevaihto</h3>
+                        <div class="flex items-baseline space-x-2">
+                            <span id="newRevenue" class="text-4xl font-black text-slate-800">0 €</span>
+                        </div>
+                        <div id="revenueDiff" class="mt-2 text-sm font-semibold"></div>
+                    </div>
+
+                    <!-- Volume Card -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wider mb-4">Uusi Volyymi</h3>
+                        <div class="flex items-baseline space-x-2">
+                            <span id="newVol" class="text-4xl font-black text-slate-800">0 kpl</span>
+                        </div>
+                        <div id="volDiff" class="mt-2 text-sm font-semibold"></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Comparison Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 border-bottom border-slate-200">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Metriikka</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Nykyinen</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Simuloitu</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="px-6 py-4 text-sm text-slate-600 italic">Hinta</td>
+                                <td id="tableOrigPrice" class="px-6 py-4 text-sm font-medium text-right">0 €</td>
+                                <td id="tableNewPrice" class="px-6 py-4 text-sm font-bold text-right text-blue-600">0 €</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 text-sm text-slate-600 italic">Volyymi</td>
+                                <td id="tableOrigVol" class="px-6 py-4 text-sm font-medium text-right">0 kpl</td>
+                                <td id="tableNewVol" class="px-6 py-4 text-sm font-bold text-right text-blue-600">0 kpl</td>
+                            </tr>
+                            <tr class="bg-slate-50/50">
+                                <td class="px-6 py-4 text-sm font-bold text-slate-800 uppercase">Liikevaihto</td>
+                                <td id="tableOrigRev" class="px-6 py-4 text-sm font-bold text-right">0 €</td>
+                                <td id="tableNewRev" class="px-6 py-4 text-sm font-bold text-right text-green-600">0 €</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Insights box -->
+                <div id="insightBox" class="p-4 rounded-xl text-sm">
+                    <!-- JS injects content here -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const inputs = {
+            origPrice: document.getElementById('origPrice'),
+            newPrice: document.getElementById('newPrice'),
+            origVol: document.getElementById('origVol'),
+            elasticity: document.getElementById('elasticity')
+        };
+
+        const displays = {
+            origPrice: document.getElementById('origPriceVal'),
+            newPrice: document.getElementById('newPriceVal'),
+            origVol: document.getElementById('origVolVal'),
+            elasticity: document.getElementById('elasticityVal'),
+            priceChangePct: document.getElementById('priceChangePct'),
+            
+            newRevenue: document.getElementById('newRevenue'),
+            revenueDiff: document.getElementById('revenueDiff'),
+            newVol: document.getElementById('newVol'),
+            volDiff: document.getElementById('volDiff'),
+            
+            tableOrigPrice: document.getElementById('tableOrigPrice'),
+            tableNewPrice: document.getElementById('tableNewPrice'),
+            tableOrigVol: document.getElementById('tableOrigVol'),
+            tableNewVol: document.getElementById('tableNewVol'),
+            tableOrigRev: document.getElementById('tableOrigRev'),
+            tableNewRev: document.getElementById('tableNewRev'),
+            
+            insightBox: document.getElementById('insightBox')
+        };
+
+        function formatEuro(val) {
+            return new Intl.NumberFormat('fi-FI', { style: 'currency', currency: 'EUR' }).format(val);
+        }
+
+        function formatNum(val) {
+            return new Intl.NumberFormat('fi-FI').format(Math.round(val));
+        }
+
+        function calculate() {
+            const p1 = parseFloat(inputs.origPrice.value);
+            const p2 = parseFloat(inputs.newPrice.value);
+            const v1 = parseFloat(inputs.origVol.value);
+            const e = parseFloat(inputs.elasticity.value);
+
+            // Update range slider background tracking
+            Object.values(inputs).forEach(input => {
+                const val = (input.value - input.min) / (input.max - input.min) * 100;
+                input.style.backgroundSize = val + '% 100%';
+            });
+
+            // Math
+            const priceChangeFraction = (p1 - p2) / p1; // Percentage decrease
+            const priceChangePct = priceChangeFraction * 100;
+            
+            // Demand elasticity: % change in Q = E * % change in P
+            // Since we use positive 'E' for sensitivity, and P is decreasing:
+            const volGrowthPct = priceChangeFraction * e;
+            const v2 = v1 * (1 + volGrowthPct);
+            
+            const r1 = p1 * v1;
+            const r2 = p2 * v2;
+            const revDiff = r2 - r1;
+            const revDiffPct = (revDiff / r1) * 100;
+
+            // Updates
+            displays.origPrice.textContent = p1;
+            displays.newPrice.textContent = p2;
+            displays.origVol.textContent = v1;
+            displays.elasticity.textContent = e.toFixed(1);
+            
+            displays.priceChangePct.textContent = `Hinnan lasku: ${priceChangePct.toFixed(1)}%`;
+            
+            displays.newRevenue.textContent = formatEuro(r2);
+            displays.newVol.textContent = formatNum(v2) + " kpl";
+
+            // Difference indicators
+            if (revDiff >= 0) {
+                displays.revenueDiff.textContent = `+${formatEuro(revDiff)} (+${revDiffPct.toFixed(1)}%)`;
+                displays.revenueDiff.className = "mt-2 text-sm font-semibold text-green-600";
+            } else {
+                displays.revenueDiff.textContent = `${formatEuro(revDiff)} (${revDiffPct.toFixed(1)}%)`;
+                displays.revenueDiff.className = "mt-2 text-sm font-semibold text-red-600";
+            }
+
+            const volDiffCount = v2 - v1;
+            const volDiffPct = (volDiffCount / v1) * 100;
+            displays.volDiff.textContent = `+${formatNum(volDiffCount)} kpl (+${volDiffPct.toFixed(1)}%)`;
+            displays.volDiff.className = "mt-2 text-sm font-semibold text-blue-600";
+
+            // Table updates
+            displays.tableOrigPrice.textContent = formatEuro(p1);
+            displays.tableNewPrice.textContent = formatEuro(p2);
+            displays.tableOrigVol.textContent = formatNum(v1) + " kpl";
+            displays.tableNewVol.textContent = formatNum(v2) + " kpl";
+            displays.tableOrigRev.textContent = formatEuro(r1);
+            displays.tableNewRev.textContent = formatEuro(r2);
+
+            // Insights logic
+            if (p2 > p1) {
+                displays.insightBox.className = "p-4 rounded-xl text-sm bg-orange-50 text-orange-800 border border-orange-200";
+                displays.insightBox.textContent = "Huom: Simuloit hinnan korotusta. Jousto-malli olettaa volyymin laskevan samassa suhteessa.";
+            } else if (revDiff > 0) {
+                displays.insightBox.className = "p-4 rounded-xl text-sm bg-green-50 text-green-800 border border-green-200";
+                displays.insightBox.textContent = "Strategia on kannattava: Volyymin kasvu kompensoi hinnan laskun ja kasvattaa liikevaihtoa.";
+            } else {
+                displays.insightBox.className = "p-4 rounded-xl text-sm bg-red-50 text-red-800 border border-red-200";
+                displays.insightBox.textContent = "Varoitus: Hinnan lasku syö katetta enemmän kuin volyymi kasvaa. Liikevaihto laskee.";
+            }
+        }
+
+        // Event Listeners
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+
+        // Initial run
+        window.onload = calculate;
+
+    </script>
+</body>
+</html>
