@@ -24,6 +24,12 @@
             box-shadow: 0 0 2px 0 rgba(0,0,0,0.5);
             transition: background .3s ease-in-out;
         }
+        /* Poistetaan nuolet numerokentistä tyylin vuoksi joissain selaimissa */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
@@ -39,35 +45,39 @@
             
             <!-- Controls Sidebar -->
             <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-8">
+                <!-- Alkuperäinen hinta -->
                 <div>
-                    <div class="flex justify-between mb-2">
+                    <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-semibold text-slate-700">Alkuperäinen hinta (€)</label>
-                        <span id="origPriceVal" class="text-blue-600 font-bold">100</span>
+                        <input type="number" id="origPriceNum" value="100" class="w-20 text-right text-sm font-bold text-blue-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
                     <input type="range" id="origPrice" min="1" max="1000" value="100" class="w-full cursor-pointer">
                 </div>
 
+                <!-- Uusi hinta -->
                 <div>
-                    <div class="flex justify-between mb-2">
+                    <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-semibold text-slate-700">Uusi hinta (€)</label>
-                        <span id="newPriceVal" class="text-blue-600 font-bold">90</span>
+                        <input type="number" id="newPriceNum" value="90" class="w-20 text-right text-sm font-bold text-blue-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
                     <input type="range" id="newPrice" min="1" max="1000" value="90" class="w-full cursor-pointer">
                     <p id="priceChangePct" class="text-xs mt-1 text-slate-500 italic"></p>
                 </div>
 
+                <!-- Alkuperäinen volyymi -->
                 <div>
-                    <div class="flex justify-between mb-2">
+                    <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-semibold text-slate-700">Alkuperäinen volyymi (kpl)</label>
-                        <span id="origVolVal" class="text-blue-600 font-bold">1000</span>
+                        <input type="number" id="origVolNum" value="1000" class="w-20 text-right text-sm font-bold text-blue-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
                     <input type="range" id="origVol" min="10" max="10000" step="10" value="1000" class="w-full cursor-pointer">
                 </div>
 
+                <!-- Hintajousto -->
                 <div>
-                    <div class="flex justify-between mb-2">
+                    <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-semibold text-slate-700">Kysynnän hintajousto</label>
-                        <span id="elasticityVal" class="text-blue-600 font-bold">1.5</span>
+                        <input type="number" id="elasticityNum" value="1.5" step="0.1" class="w-20 text-right text-sm font-bold text-blue-600 border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
                     <input type="range" id="elasticity" min="0" max="5" step="0.1" value="1.5" class="w-full cursor-pointer">
                     <p class="text-[10px] text-slate-400 mt-2 leading-tight">
@@ -81,7 +91,6 @@
                 
                 <!-- Summary Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Revenue Card -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wider mb-4">Uusi Liikevaihto</h3>
                         <div class="flex items-baseline space-x-2">
@@ -90,7 +99,6 @@
                         <div id="revenueDiff" class="mt-2 text-sm font-semibold"></div>
                     </div>
 
-                    <!-- Volume Card -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wider mb-4">Uusi Volyymi</h3>
                         <div class="flex items-baseline space-x-2">
@@ -130,43 +138,35 @@
                     </table>
                 </div>
 
-                <!-- Insights box -->
-                <div id="insightBox" class="p-4 rounded-xl text-sm">
-                    <!-- JS injects content here -->
-                </div>
-
+                <div id="insightBox" class="p-4 rounded-xl text-sm"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // DOM Elements
         const inputs = {
             origPrice: document.getElementById('origPrice'),
+            origPriceNum: document.getElementById('origPriceNum'),
             newPrice: document.getElementById('newPrice'),
+            newPriceNum: document.getElementById('newPriceNum'),
             origVol: document.getElementById('origVol'),
-            elasticity: document.getElementById('elasticity')
+            origVolNum: document.getElementById('origVolNum'),
+            elasticity: document.getElementById('elasticity'),
+            elasticityNum: document.getElementById('elasticityNum')
         };
 
         const displays = {
-            origPrice: document.getElementById('origPriceVal'),
-            newPrice: document.getElementById('newPriceVal'),
-            origVol: document.getElementById('origVolVal'),
-            elasticity: document.getElementById('elasticityVal'),
             priceChangePct: document.getElementById('priceChangePct'),
-            
             newRevenue: document.getElementById('newRevenue'),
             revenueDiff: document.getElementById('revenueDiff'),
             newVol: document.getElementById('newVol'),
             volDiff: document.getElementById('volDiff'),
-            
             tableOrigPrice: document.getElementById('tableOrigPrice'),
             tableNewPrice: document.getElementById('tableNewPrice'),
             tableOrigVol: document.getElementById('tableOrigVol'),
             tableNewVol: document.getElementById('tableNewVol'),
             tableOrigRev: document.getElementById('tableOrigRev'),
             tableNewRev: document.getElementById('tableNewRev'),
-            
             insightBox: document.getElementById('insightBox')
         };
 
@@ -184,38 +184,25 @@
             const v1 = parseFloat(inputs.origVol.value);
             const e = parseFloat(inputs.elasticity.value);
 
-            // Update range slider background tracking
-            Object.values(inputs).forEach(input => {
+            // Päivitä taustaväri vain liukusäätimille
+            [inputs.origPrice, inputs.newPrice, inputs.origVol, inputs.elasticity].forEach(input => {
                 const val = (input.value - input.min) / (input.max - input.min) * 100;
                 input.style.backgroundSize = val + '% 100%';
             });
 
-            // Math
-            const priceChangeFraction = (p1 - p2) / p1; // Percentage decrease
+            const priceChangeFraction = (p1 - p2) / p1;
             const priceChangePct = priceChangeFraction * 100;
-            
-            // Demand elasticity: % change in Q = E * % change in P
-            // Since we use positive 'E' for sensitivity, and P is decreasing:
             const volGrowthPct = priceChangeFraction * e;
             const v2 = v1 * (1 + volGrowthPct);
-            
             const r1 = p1 * v1;
             const r2 = p2 * v2;
             const revDiff = r2 - r1;
             const revDiffPct = (revDiff / r1) * 100;
 
-            // Updates
-            displays.origPrice.textContent = p1;
-            displays.newPrice.textContent = p2;
-            displays.origVol.textContent = v1;
-            displays.elasticity.textContent = e.toFixed(1);
-            
             displays.priceChangePct.textContent = `Hinnan lasku: ${priceChangePct.toFixed(1)}%`;
-            
             displays.newRevenue.textContent = formatEuro(r2);
             displays.newVol.textContent = formatNum(v2) + " kpl";
 
-            // Difference indicators
             if (revDiff >= 0) {
                 displays.revenueDiff.textContent = `+${formatEuro(revDiff)} (+${revDiffPct.toFixed(1)}%)`;
                 displays.revenueDiff.className = "mt-2 text-sm font-semibold text-green-600";
@@ -229,7 +216,6 @@
             displays.volDiff.textContent = `+${formatNum(volDiffCount)} kpl (+${volDiffPct.toFixed(1)}%)`;
             displays.volDiff.className = "mt-2 text-sm font-semibold text-blue-600";
 
-            // Table updates
             displays.tableOrigPrice.textContent = formatEuro(p1);
             displays.tableNewPrice.textContent = formatEuro(p2);
             displays.tableOrigVol.textContent = formatNum(v1) + " kpl";
@@ -237,7 +223,6 @@
             displays.tableOrigRev.textContent = formatEuro(r1);
             displays.tableNewRev.textContent = formatEuro(r2);
 
-            // Insights logic
             if (p2 > p1) {
                 displays.insightBox.className = "p-4 rounded-xl text-sm bg-orange-50 text-orange-800 border border-orange-200";
                 displays.insightBox.textContent = "Huom: Simuloit hinnan korotusta. Jousto-malli olettaa volyymin laskevan samassa suhteessa.";
@@ -250,14 +235,32 @@
             }
         }
 
-        // Event Listeners
-        Object.values(inputs).forEach(input => {
-            input.addEventListener('input', calculate);
-        });
+        // Linkitetään liukusäätimet ja numerokentät
+        function setupSync(rangeId, numId) {
+            const range = document.getElementById(rangeId);
+            const num = document.getElementById(numId);
 
-        // Initial run
+            range.addEventListener('input', () => {
+                num.value = range.value;
+                calculate();
+            });
+
+            num.addEventListener('input', () => {
+                // Pidetään numero rajoissa
+                if (parseFloat(num.value) > parseFloat(range.max)) num.value = range.max;
+                if (parseFloat(num.value) < parseFloat(range.min)) num.value = range.min;
+                
+                range.value = num.value;
+                calculate();
+            });
+        }
+
+        setupSync('origPrice', 'origPriceNum');
+        setupSync('newPrice', 'newPriceNum');
+        setupSync('origVol', 'origVolNum');
+        setupSync('elasticity', 'elasticityNum');
+
         window.onload = calculate;
-
     </script>
 </body>
 </html>
